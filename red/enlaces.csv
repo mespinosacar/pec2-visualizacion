@@ -1,0 +1,105 @@
+origen,destino,personas
+A Coruña,Pontevedra,2218
+A Coruña,Madrid,1897
+Álava,Bizkaia,1061
+Álava,Burgos,657
+Albacete,Valencia,942
+Albacete,Madrid,902
+Alicante,Valencia,5120
+Alicante,Madrid,4113
+Almería,Granada,1537
+Almería,Murcia,1345
+Asturias,Madrid,2056
+Asturias,León,716
+Ávila,Madrid,2434
+Ávila,Salamanca,311
+Badajoz,Madrid,1790
+Badajoz,Cáceres,924
+Barcelona,Tarragona,11345
+Barcelona,Girona,9147
+Bizkaia,Cantabria,1567
+Bizkaia,Madrid,1415
+Burgos,Madrid,1163
+Burgos,Bizkaia,704
+Cáceres,Madrid,1828
+Cáceres,Badajoz,928
+Cádiz,Sevilla,2772
+Cádiz,Madrid,2344
+Cantabria,Bizkaia,1684
+Cantabria,Madrid,1395
+Castellón,Valencia,2782
+Castellón,Barcelona,1134
+Ceuta,Cádiz,536
+Ceuta,Málaga,406
+Ciudad Real,Madrid,2481
+Ciudad Real,Toledo,833
+Córdoba,Málaga,1467
+Córdoba,Madrid,1279
+Cuenca,Madrid,1596
+Cuenca,Valencia,914
+Gipuzkoa,Bizkaia,1553
+Gipuzkoa,Madrid,978
+Girona,Barcelona,7845
+Girona,Madrid,725
+Granada,Málaga,1790
+Granada,Madrid,1776
+Guadalajara,Madrid,5437
+Guadalajara,Toledo,314
+Huelva,Sevilla,1941
+Huelva,Madrid,630
+Huesca,Zaragoza,1365
+Huesca,Barcelona,604
+Illes Balears,Barcelona,3157
+Illes Balears,Madrid,2802
+Jaén,Madrid,1390
+Jaén,Granada,1346
+La Rioja,Navarra,855
+La Rioja,Madrid,613
+Las Palmas,Madrid,2495
+Las Palmas,Santa Cruz de Tenerife,2040
+León,Madrid,1440
+León,Asturias,763
+Lleida,Barcelona,3111
+Lleida,Tarragona,982
+Lugo,A Coruña,1427
+Lugo,Madrid,599
+Madrid,Toledo,19343
+Madrid,Guadalajara,7848
+Málaga,Madrid,3703
+Málaga,Cádiz,2389
+Melilla,Málaga,526
+Melilla,Madrid,354
+Murcia,Alicante,3730
+Murcia,Madrid,2803
+Navarra,Madrid,1427
+Navarra,La Rioja,946
+Ourense,Pontevedra,1210
+Ourense,A Coruña,794
+Palencia,Valladolid,572
+Palencia,Madrid,356
+Pontevedra,A Coruña,2429
+Pontevedra,Madrid,1517
+Salamanca,Madrid,1399
+Salamanca,Valladolid,353
+Santa Cruz de Tenerife,Madrid,2351
+Santa Cruz de Tenerife,Las Palmas,2059
+Segovia,Madrid,1837
+Segovia,Valladolid,393
+Sevilla,Madrid,2748
+Sevilla,Cádiz,2325
+Soria,Madrid,504
+Soria,Zaragoza,345
+Tarragona,Barcelona,7574
+Tarragona,Lleida,851
+Teruel,Zaragoza,1118
+Teruel,Valencia,568
+Toledo,Madrid,14136
+Toledo,Ciudad Real,888
+Valencia,Madrid,4325
+Valencia,Alicante,4118
+Valladolid,Madrid,1232
+Valladolid,Palencia,486
+Zamora,Madrid,634
+Zamora,Valladolid,472
+Zaragoza,Madrid,2012
+Zaragoza,Barcelona,1357

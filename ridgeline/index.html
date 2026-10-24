@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edad al casarse en España</title>
+<style>
+  :root {
+    --texto: #1c1c1c;
+    --suave: #666;
+    --hombres: #2a7fb8;
+    --mujeres: #d1495b;
+  }
+  body {
+    margin: 0;
+    background: #fff;
+    color: var(--texto);
+    font-family: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+  }
+  main { max-width: 900px; margin: 0 auto; padding: 24px 16px 16px; }
+  h1 { font-size: 28px; margin: 0 0 6px; }
+  .subtitulo { font-size: 16px; color: var(--suave); margin: 0 0 14px; line-height: 1.4; }
+  .controles { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; font-size: 14px; margin-bottom: 8px; }
+  .grupo button {
+    font: inherit; font-size: 13px; padding: 5px 10px; border: 1px solid #ccc; background: #fff;
+    cursor: pointer; color: var(--texto);
+  }
+  .grupo button:first-child { border-radius: 4px 0 0 4px; }
+  .grupo button:last-child { border-radius: 0 4px 4px 0; border-left: none; }
+  .grupo button.activo { background: var(--texto); color: #fff; border-color: var(--texto); }
+  .leyenda { display: flex; gap: 14px; align-items: center; color: var(--suave); }
+  .leyenda span::before {
+    content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 2px;
+    margin-right: 5px; vertical-align: -1px; background: var(--c); opacity: .75;
+  }
+  #grafico { width: 100%; height: auto; display: block; }
+  .area { fill-opacity: 0.35; stroke-width: 1.5; }
+  .eje text { font-size: 12px; fill: var(--suave); }
+  .eje path, .eje line { stroke: #ccc; }
+  .anio { font-size: 13px; fill: var(--texto); font-weight: 600; }
+  .media { font-size: 11px; fill: var(--suave); }
+  .marca-media { stroke-width: 1.5; }
+  .fila-activa .area { fill-opacity: 0.6; }
+  .fuente { font-size: 12px; color: var(--suave); margin-top: 6px; }
+  .fuente a { color: var(--suave); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Cada vez nos casamos más tarde… y menos a la vez</h1>
+  <p class="subtitulo">Edad a la que se casan por primera vez (personas solteras) en España, de 1975 a 2024.
+    Cada curva muestra qué porcentaje de las primeras nupcias de ese año correspondió a cada edad; la marca vertical es la edad media.</p>
+  <div class="controles">
+    <div class="leyenda">
+      <span style="--c: var(--mujeres)">Mujeres</span>
+      <span style="--c: var(--hombres)">Hombres</span>
+    </div>
+  </div>
+  <svg id="grafico" role="img" aria-label="Curvas de distribución de la edad al casarse en España por año, de 1975 a 2024, para hombres y mujeres"></svg>
+  <p class="fuente">Fuente: INE, Estadística de Matrimonios (Movimiento Natural de la Población),
+    <a href="https://www.ine.es/jaxiT3/Tabla.htm?t=6536">tabla 6536</a> (matrimonios de solteros por edad). Edades de 15 a 59 años
+    (los de 60 y más son entre el 0,3 % y el 2,4 % según el año).</p>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script>
+const ANCHO = 860, MARGEN = { arriba: 20, derecha: 130, abajo: 34, izquierda: 56 };
+const COLOR = { Hombres: "#2a7fb8", Mujeres: "#d1495b" };
+const fmt1 = d3.format(".1f");
+const coma = n => fmt1(n).replace(".", ",");
+
+d3.csv("matrimonios.csv", d3.autoType).then(filas => {
+  const estado = { tipo: "Primeras", paso: 5 };
+  const anios = d3.range(1975, 2025);
+  const edades = d3.range(15, 60);
+
+  // Porcentaje de las bodas de cada año y sexo que corresponde a cada edad
+  function series(tipo) {
+    const totales = d3.rollup(filas, v => d3.sum(v, d => d[tipo]), d => d.Anio, d => d.Sexo);
+    const porClave = d3.group(filas, d => d.Anio, d => d.Sexo);
+    const out = [];
+    for (const anio of anios) {
+      for (const sexo of ["Mujeres", "Hombres"]) {
+        const total = totales.get(anio).get(sexo);
+        const puntos = porClave.get(anio).get(sexo)
+          .map(d => ({ edad: d.Edad, pct: total ? d[tipo] / total * 100 : 0 }))
+          .sort((a, b) => a.edad - b.edad);
+        const media = total ? d3.sum(puntos, p => p.edad * p.pct) / 100 : NaN;
+        out.push({ anio, sexo, puntos, media, total });
+      }
+    }
+    return out;
+  }
+
+  const svg = d3.select("#grafico");
+  const x = d3.scaleLinear().domain([15, 59]).range([MARGEN.izquierda, ANCHO - MARGEN.derecha]);
+
+  function dibujar() {
+    const datos = series(estado.tipo);
+    const filasAnio = anios.filter(a => (a - 1975) % estado.paso === 0 || a === 2024);
+    const altoFila = estado.paso === 5 ? 46 : 13;
+    const solape = estado.paso === 5 ? 2.4 : 4.5;
+    const cresta = altoFila * solape;
+    const ALTO = MARGEN.arriba + cresta + altoFila * (filasAnio.length - 1) + MARGEN.abajo + 6;
+    svg.attr("viewBox", `0 0 ${ANCHO} ${ALTO}`);
+    svg.selectAll("*").remove();
+
+    const yFila = d3.scalePoint().domain(filasAnio).range([MARGEN.arriba + cresta, ALTO - MARGEN.abajo - 6]);
+    const maxPct = d3.max(datos.filter(d => filasAnio.includes(d.anio)), d => d3.max(d.puntos, p => p.pct));
+    const h = d3.scaleLinear().domain([0, maxPct]).range([0, altoFila * solape]);
+
+    const area = d3.area().curve(d3.curveBasis)
+      .x(p => x(p.edad)).y0(0).y1(p => -h(p.pct));
+
+    // Eje de edades
+    svg.append("g").attr("class", "eje").attr("transform", `translate(0,${ALTO - MARGEN.abajo})`)
+      .call(d3.axisBottom(x).tickValues(d3.range(15, 60, 5)).tickFormat(d => d + " años"));
+
+    const grupos = svg.append("g").selectAll("g").data(filasAnio).join("g")
+      .attr("transform", a => `translate(0,${yFila(a)})`);
+
+    grupos.each(function (anio) {
+      const g = d3.select(this);
+      const deAnio = datos.filter(d => d.anio === anio);
+      g.selectAll("path.area").data(deAnio).join("path")
+        .attr("class", "area").attr("d", d => area(d.puntos))
+        .attr("fill", d => COLOR[d.sexo]).attr("stroke", d => COLOR[d.sexo]);
+      if (estado.paso === 5) {
+        g.selectAll("line.marca-media").data(deAnio).join("line")
+          .attr("class", "marca-media").attr("stroke", d => COLOR[d.sexo])
+          .attr("x1", d => x(d.media)).attr("x2", d => x(d.media)).attr("y1", 0).attr("y2", -altoFila * 0.9);
+        const m = Object.fromEntries(deAnio.map(d => [d.sexo, d.media]));
+        g.append("text").attr("class", "media").attr("x", ANCHO - MARGEN.derecha + 10).attr("y", -4)
+          .text(`M ${coma(m.Mujeres)} · H ${coma(m.Hombres)}`);
+      }
+      if (estado.paso === 5 || anio % 5 === 0 || anio === 2024) {
+        g.append("text").attr("class", "anio").attr("x", MARGEN.izquierda - 8).attr("y", -3)
+          .attr("text-anchor", "end").text(anio);
+      }
+    });
+
+    if (estado.paso === 5) {
+      svg.append("text").attr("class", "media").attr("x", ANCHO - MARGEN.derecha + 10).attr("y", MARGEN.arriba)
+        .text("Edad media");
+    }
+
+    // Resaltar la fila bajo el ratón
+    grupos.on("mouseenter", function () { d3.select(this).classed("fila-activa", true).raise(); })
+      .on("mouseleave", function () { d3.select(this).classed("fila-activa", false); });
+  }
+
+  dibujar();
+});
+</script>
+</body>
+</html>

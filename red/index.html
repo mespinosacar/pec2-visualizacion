@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Migraciones entre provincias · 2024</title>
+<style>
+  :root {
+    --texto: #1c1c1c;
+    --suave: #666;
+    --mapa: #eeeae4;
+    --borde-mapa: #fff;
+    --enlace: #3b3b3b;
+  }
+  body {
+    margin: 0;
+    background: #fff;
+    color: var(--texto);
+    font-family: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+  }
+  main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 24px 16px 16px;
+  }
+  h1 { font-size: 28px; margin: 0 0 6px; }
+  .subtitulo { font-size: 16px; color: var(--suave); margin: 0 0 12px; line-height: 1.4; }
+  .leyenda { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; font-size: 13px; color: var(--suave); }
+  .leyenda svg { display: block; }
+  #grafico { width: 100%; height: auto; display: block; }
+  .provincia { fill: var(--mapa); stroke: var(--borde-mapa); stroke-width: 0.8; }
+  .marco { fill: none; stroke: #bbb; stroke-width: 0.8; }
+  .enlace { fill: none; stroke: var(--enlace); stroke-opacity: 0.35; }
+  .enlace.activo { stroke-opacity: 0.9; }
+  .enlace.apagado { stroke-opacity: 0.06; }
+  .nodo { stroke: #fff; stroke-width: 1.2; cursor: pointer; }
+  .nodo.apagado { opacity: 0.25; }
+  .etiqueta { font-size: 11px; fill: var(--texto); paint-order: stroke; stroke: #fff; stroke-width: 3px; pointer-events: none; }
+  .etiqueta.apagado { opacity: 0.2; }
+  .fuente { font-size: 12px; color: var(--suave); margin-top: 8px; }
+  .fuente a { color: var(--suave); }
+  #tooltip {
+    position: fixed; pointer-events: none; background: #fff; border: 1px solid #ddd;
+    border-radius: 4px; padding: 8px 10px; font-size: 13px; line-height: 1.45;
+    box-shadow: 0 2px 8px rgba(0,0,0,.12); opacity: 0; transition: opacity .1s;
+  }
+  #tooltip strong { font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Todos los caminos llevan a Madrid… y salen de ella</h1>
+  <p class="subtitulo">Migraciones entre provincias españolas en 2024: los dos destinos principales de cada provincia.
+    El grosor de la flecha indica las personas que se mudan; el color del círculo, si la provincia gana o pierde población con estos movimientos.</p>
+  <div class="leyenda">
+    <div>
+      <div>Saldo migratorio interprovincial (todas las provincias de destino)</div>
+      <svg id="leyenda-saldo" width="260" height="34"></svg>
+    </div>
+    <div>
+      <div>Personas que se mudan</div>
+      <svg id="leyenda-grosor" width="260" height="34"></svg>
+    </div>
+  </div>
+  <svg id="grafico" viewBox="0 0 900 760" role="img"
+       aria-label="Mapa de España con flechas entre provincias que muestran los dos destinos principales de cada provincia en 2024"></svg>
+  <p class="fuente">Fuente: <a href="https://www.ine.es/jaxiT3/Tabla.htm?t=69742">INE, Estadística de Migraciones y Cambios de Residencia, 2024 (tabla 69742)</a>.
+    Pasa el ratón por una provincia para ver sus flujos.</p>
+</main>
+<div id="tooltip"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3-composite-projections@1.4.0/d3-composite-projections.min.js"></script>
+<script>
+const ANCHO = 900, ALTO = 760;
+const fmt = d3.format(",.0f");
+const num = n => fmt(n).replace(/,/g, ".");
+
+Promise.all([
+  d3.json("provincias.geojson"),
+  d3.csv("nodos.csv", d3.autoType),
+  d3.csv("enlaces.csv", d3.autoType)
+]).then(([geo, nodos, enlaces]) => {
+  // El GeoJSON sigue la regla de la mano derecha (RFC 7946) y D3 espera la contraria:
+  // si un polígono "ocupa" más de medio planeta, se invierten sus anillos.
+  geo.features.forEach(f => {
+    const polys = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates;
+    polys.forEach(p => {
+      if (d3.geoArea({ type: "Polygon", coordinates: p }) > 2 * Math.PI) p.forEach(anillo => anillo.reverse());
+    });
+  });
+  const proyeccion = d3.geoConicConformalSpain().fitExtent([[10, 10], [ANCHO - 10, ALTO - 10]], geo);
+  const ruta = d3.geoPath(proyeccion);
+
+  // Cada nodo en el centroide geográfico de su provincia
+  const porCodigo = new Map(geo.features.map(f => [f.properties.codigo, f]));
+  nodos.forEach(n => {
+    const [x, y] = ruta.centroid(porCodigo.get(n.codigo));
+    n.x = x; n.y = y;
+  });  const porNombre = new Map(nodos.map(n => [n.provincia, n]));
+  enlaces.forEach(e => { e.o = porNombre.get(e.origen); e.d = porNombre.get(e.destino); });
+
+  const grosor = d3.scaleSqrt().domain([0, d3.max(enlaces, e => e.personas)]).range([0, 9]);
+  const color = d3.scaleDiverging(t => d3.interpolateRdBu(t)).domain([-6000, 0, 6000]).clamp(true);
+
+  const svg = d3.select("#grafico");
+
+  svg.append("g").selectAll("path").data(geo.features).join("path")
+    .attr("class", "provincia").attr("d", ruta);
+  svg.append("path").attr("class", "marco").attr("d", proyeccion.getCompositionBorders());
+
+  svg.append("defs").append("marker")
+    .attr("id", "flecha").attr("viewBox", "0 -5 10 10").attr("refX", 8).attr("refY", 0)
+    .attr("markerUnits", "userSpaceOnUse").attr("markerWidth", 8).attr("markerHeight", 8).attr("orient", "auto")
+    .append("path").attr("d", "M0,-5L10,0L0,5").attr("fill", "#3b3b3b");
+
+  // Arco curvado: A→B y B→A quedan separados
+  function arco(e) {
+    const { x: x1, y: y1 } = e.o, { x: x2, y: y2 } = e.d;
+    const dx = x2 - x1, dy = y2 - y1, dist = Math.hypot(dx, dy);
+    const mx = (x1 + x2) / 2 - dy * 0.18, my = (y1 + y2) / 2 + dx * 0.18;
+    // acortar el final para que la flecha no tape el círculo
+    const k = Math.max(0, 1 - 9 / dist);
+    const ex = mx + (x2 - mx) * k, ey = my + (y2 - my) * k;
+    return `M${x1},${y1}Q${mx},${my} ${ex},${ey}`;
+  }
+
+  const capaEnlaces = svg.append("g").selectAll("path")
+    .data(enlaces.sort((a, b) => a.personas - b.personas)).join("path")
+    .attr("class", "enlace").attr("d", arco)
+    .attr("stroke-width", e => Math.max(0.8, grosor(e.personas)))
+    .attr("marker-end", "url(#flecha)");
+
+  const capaNodos = svg.append("g").selectAll("circle").data(nodos).join("circle")
+    .attr("class", "nodo").attr("cx", n => n.x).attr("cy", n => n.y).attr("r", 6)
+    .attr("fill", n => color(n.saldo));
+
+  const conEtiqueta = new Set(nodos.filter(n => n.llegadas >= 14000).map(n => n.provincia));
+  const capaEtiquetas = svg.append("g").selectAll("text")
+    .data(nodos.filter(n => conEtiqueta.has(n.provincia))).join("text")
+    .attr("class", "etiqueta").attr("x", n => n.x + 8).attr("y", n => n.y - 6).text(n => n.provincia);
+
+  const tooltip = d3.select("#tooltip");
+  function mostrar(evento, html) {
+    tooltip.html(html).style("opacity", 1)
+      .style("left", (evento.clientX + 14) + "px").style("top", (evento.clientY + 14) + "px");
+  }
+  function ocultar() { tooltip.style("opacity", 0); }
+
+  capaNodos
+    .on("mousemove", (evento, n) => {
+      const signo = n.saldo > 0 ? "+" : "";
+      mostrar(evento, `<strong>${n.provincia}</strong> · ${n.ccaa}<br>
+        Llegan: ${num(n.llegadas)}<br>Se van: ${num(n.salidas)}<br>
+        Saldo: <b>${signo}${num(n.saldo)}</b>`);
+      const vecinos = new Set([n.provincia]);
+      capaEnlaces.classed("activo", e => e.o === n || e.d === n)
+        .classed("apagado", e => {
+          const toca = e.o === n || e.d === n;
+          if (toca) { vecinos.add(e.origen); vecinos.add(e.destino); }
+          return !toca;
+        });
+      capaNodos.classed("apagado", m => !vecinos.has(m.provincia));
+      capaEtiquetas.classed("apagado", m => !vecinos.has(m.provincia));
+    })
+    .on("mouseleave", () => {
+      ocultar();
+      capaEnlaces.classed("activo", false).classed("apagado", false);
+      capaNodos.classed("apagado", false);
+      capaEtiquetas.classed("apagado", false);
+    });
+
+  capaEnlaces
+    .on("mousemove", (evento, e) => mostrar(evento, `<strong>${e.origen} → ${e.destino}</strong><br>${num(e.personas)} personas`))
+    .on("mouseleave", ocultar);
+
+  // Leyenda del saldo
+  const ls = d3.select("#leyenda-saldo");
+  const grad = ls.append("defs").append("linearGradient").attr("id", "grad-saldo");
+  d3.range(0, 1.01, 0.1).forEach(t => grad.append("stop").attr("offset", t).attr("stop-color", d3.interpolateRdBu(t)));
+  ls.append("rect").attr("x", 0).attr("y", 4).attr("width", 240).attr("height", 10).attr("fill", "url(#grad-saldo)");
+  [["−6.000 o menos", 0, "start"], ["0", 120, "middle"], ["+6.000 o más", 240, "end"]].forEach(([t, x, a]) =>
+    ls.append("text").attr("x", x).attr("y", 30).attr("text-anchor", a).attr("font-size", 12).attr("fill", "#666").text(t));
+
+  // Leyenda del grosor
+  const lg = d3.select("#leyenda-grosor");
+  [1000, 5000, 15000].forEach((v, i) => {
+    const x = i * 85;
+    lg.append("line").attr("x1", x).attr("x2", x + 40).attr("y1", 10).attr("y2", 10)
+      .attr("stroke", "#3b3b3b").attr("stroke-opacity", 0.6).attr("stroke-width", grosor(v));
+    lg.append("text").attr("x", x).attr("y", 30).attr("font-size", 12).attr("fill", "#666").text(num(v));
+  });
+});
+</script>
+</body>
+</html>

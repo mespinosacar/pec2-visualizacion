@@ -7,9 +7,10 @@
 <style>
   :root {
     --texto: #1c1c1c;
+    --titulo: #7a0a0a;
     --suave: #666;
-    --hombres: #2a7fb8;
-    --mujeres: #d1495b;
+    --hombres: #2f6d8c;
+    --mujeres: #7a0a0a;
   }
   body {
     margin: 0;
@@ -18,7 +19,7 @@
     font-family: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
   }
   main { max-width: 900px; margin: 0 auto; padding: 24px 16px 16px; }
-  h1 { font-size: 28px; margin: 0 0 6px; }
+  h1 { font-size: 28px; margin: 0 0 6px; color: var(--titulo); }
   .subtitulo { font-size: 16px; color: var(--suave); margin: 0 0 14px; line-height: 1.4; }
   .controles { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; font-size: 14px; margin-bottom: 8px; }
   .grupo button {
@@ -65,7 +66,7 @@
 <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
 <script>
 const ANCHO = 860, MARGEN = { arriba: 20, derecha: 130, abajo: 34, izquierda: 56 };
-const COLOR = { Hombres: "#2a7fb8", Mujeres: "#d1495b" };
+const COLOR = { Hombres: "#2f6d8c", Mujeres: "#7a0a0a" };
 const fmt1 = d3.format(".1f");
 const coma = n => fmt1(n).replace(".", ",");
 

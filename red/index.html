@@ -7,6 +7,7 @@
 <style>
   :root {
     --texto: #1c1c1c;
+    --titulo: #7a0a0a;
     --suave: #666;
     --mapa: #eeeae4;
     --borde-mapa: #fff;
@@ -23,7 +24,7 @@
     margin: 0 auto;
     padding: 24px 16px 16px;
   }
-  h1 { font-size: 28px; margin: 0 0 6px; }
+  h1 { font-size: 28px; margin: 0 0 6px; color: var(--titulo); }
   .subtitulo { font-size: 16px; color: var(--suave); margin: 0 0 12px; line-height: 1.4; }
   .leyenda { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; font-size: 13px; color: var(--suave); }
   .leyenda svg { display: block; }
@@ -101,7 +102,7 @@ Promise.all([
   enlaces.forEach(e => { e.o = porNombre.get(e.origen); e.d = porNombre.get(e.destino); });
 
   const grosor = d3.scaleSqrt().domain([0, d3.max(enlaces, e => e.personas)]).range([0, 9]);
-  const color = d3.scaleDiverging(t => d3.interpolateRdBu(t)).domain([-6000, 0, 6000]).clamp(true);
+  const color = d3.scaleDiverging(d3.interpolateRgbBasis(["#7a0a0a", "#c98a7f", "#f3efe9", "#8fb3c7", "#2f6d8c"])).domain([-6000, 0, 6000]).clamp(true);
 
   const svg = d3.select("#grafico");
 
@@ -177,7 +178,7 @@ Promise.all([
   // Leyenda del saldo
   const ls = d3.select("#leyenda-saldo");
   const grad = ls.append("defs").append("linearGradient").attr("id", "grad-saldo");
-  d3.range(0, 1.01, 0.1).forEach(t => grad.append("stop").attr("offset", t).attr("stop-color", d3.interpolateRdBu(t)));
+  d3.range(0, 1.01, 0.1).forEach(t => grad.append("stop").attr("offset", t).attr("stop-color", color.interpolator()(t)));
   ls.append("rect").attr("x", 0).attr("y", 4).attr("width", 240).attr("height", 10).attr("fill", "url(#grad-saldo)");
   [["−6.000 o menos", 0, "start"], ["0", 120, "middle"], ["+6.000 o más", 240, "end"]].forEach(([t, x, a]) =>
     ls.append("text").attr("x", x).attr("y", 30).attr("text-anchor", a).attr("font-size", 12).attr("fill", "#666").text(t));

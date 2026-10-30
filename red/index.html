@@ -12,6 +12,8 @@
     --mapa: #eeeae4;
     --borde-mapa: #fff;
     --enlace: #3b3b3b;
+    --salida: #7a0a0a;
+    --llegada: #2f6d8c;
   }
   body {
     margin: 0;
@@ -32,7 +34,8 @@
   .provincia { fill: var(--mapa); stroke: var(--borde-mapa); stroke-width: 0.8; }
   .marco { fill: none; stroke: #bbb; stroke-width: 0.8; }
   .enlace { fill: none; stroke: var(--enlace); stroke-opacity: 0.35; }
-  .enlace.activo { stroke-opacity: 0.9; }
+  .enlace.salida { stroke: var(--salida); stroke-opacity: 0.9; }
+  .enlace.llegada { stroke: var(--llegada); stroke-opacity: 0.9; }
   .enlace.apagado { stroke-opacity: 0.06; }
   .nodo { stroke: #fff; stroke-width: 1.2; cursor: pointer; }
   .nodo.apagado { opacity: 0.25; }
@@ -61,6 +64,10 @@
     <div>
       <div>Movimientos</div>
       <svg id="leyenda-grosor" width="260" height="34"></svg>
+    </div>
+    <div>
+      <div>Al pasar el ratón por una provincia</div>
+      <svg id="leyenda-sentido" width="200" height="34"></svg>
     </div>
   </div>
   <svg id="grafico" viewBox="0 0 900 760" role="img"
@@ -110,10 +117,13 @@ Promise.all([
     .attr("class", "provincia").attr("d", ruta);
   svg.append("path").attr("class", "marco").attr("d", proyeccion.getCompositionBorders());
 
-  svg.append("defs").append("marker")
-    .attr("id", "flecha").attr("viewBox", "0 -5 10 10").attr("refX", 8).attr("refY", 0)
-    .attr("markerUnits", "userSpaceOnUse").attr("markerWidth", 8).attr("markerHeight", 8).attr("orient", "auto")
-    .append("path").attr("d", "M0,-5L10,0L0,5").attr("fill", "#3b3b3b");
+  // Una punta por estado: las puntas no heredan el color ni la opacidad de la línea
+  const defs = svg.append("defs");
+  [["flecha", "#3b3b3b", 1], ["flecha-salida", "#7a0a0a", 1], ["flecha-llegada", "#2f6d8c", 1], ["flecha-apagada", "#3b3b3b", 0.06]]
+    .forEach(([id, relleno, opacidad]) => defs.append("marker")
+      .attr("id", id).attr("viewBox", "0 -5 10 10").attr("refX", 8).attr("refY", 0)
+      .attr("markerUnits", "userSpaceOnUse").attr("markerWidth", 8).attr("markerHeight", 8).attr("orient", "auto")
+      .append("path").attr("d", "M0,-5L10,0L0,5").attr("fill", relleno).attr("fill-opacity", opacidad));
 
   // Arco curvado: A→B y B→A quedan separados
   function arco(e) {
@@ -155,18 +165,21 @@ Promise.all([
         Llegadas: ${num(n.llegadas)}<br>Salidas: ${num(n.salidas)}<br>
         Saldo: <b>${signo}${num(n.saldo)}</b>`);
       const vecinos = new Set([n.provincia]);
-      capaEnlaces.classed("activo", e => e.o === n || e.d === n)
+      capaEnlaces.classed("salida", e => e.o === n)
+        .classed("llegada", e => e.d === n)
         .classed("apagado", e => {
           const toca = e.o === n || e.d === n;
           if (toca) { vecinos.add(e.origen); vecinos.add(e.destino); }
           return !toca;
-        });
+        })
+        .attr("marker-end", e => e.o === n ? "url(#flecha-salida)" : e.d === n ? "url(#flecha-llegada)" : "url(#flecha-apagada)");
       capaNodos.classed("apagado", m => !vecinos.has(m.provincia));
       capaEtiquetas.classed("apagado", m => !vecinos.has(m.provincia));
     })
     .on("mouseleave", () => {
       ocultar();
-      capaEnlaces.classed("activo", false).classed("apagado", false);
+      capaEnlaces.classed("salida", false).classed("llegada", false).classed("apagado", false)
+        .attr("marker-end", "url(#flecha)");
       capaNodos.classed("apagado", false);
       capaEtiquetas.classed("apagado", false);
     });
@@ -190,6 +203,15 @@ Promise.all([
     lg.append("line").attr("x1", x).attr("x2", x + 40).attr("y1", 10).attr("y2", 10)
       .attr("stroke", "#3b3b3b").attr("stroke-opacity", 0.6).attr("stroke-width", grosor(v));
     lg.append("text").attr("x", x).attr("y", 30).attr("font-size", 12).attr("fill", "#666").text(num(v));
+  });
+
+  // Leyenda del sentido
+  const lz = d3.select("#leyenda-sentido");
+  [["Sus 2 salidas", "#7a0a0a"], ["Sus llegadas", "#2f6d8c"]].forEach(([t, c], i) => {
+    const x = i * 95;
+    lz.append("line").attr("x1", x).attr("x2", x + 40).attr("y1", 10).attr("y2", 10)
+      .attr("stroke", c).attr("stroke-width", 3);
+    lz.append("text").attr("x", x).attr("y", 30).attr("font-size", 12).attr("fill", "#666").text(t);
   });
 });
 </script>

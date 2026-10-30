@@ -52,14 +52,14 @@
 <main>
   <h1>Todos los caminos llevan a Madrid… y salen de ella</h1>
   <p class="subtitulo">Migraciones entre provincias españolas en 2024: los dos destinos principales de cada provincia.
-    El grosor de la flecha indica las personas que se mudan; el color del círculo, si la provincia gana o pierde población con estos movimientos.</p>
+    El grosor de la flecha indica los movimientos; el color del círculo, si la provincia gana o pierde con el conjunto de sus movimientos.</p>
   <div class="leyenda">
     <div>
       <div>Saldo migratorio interprovincial (todas las provincias de destino)</div>
       <svg id="leyenda-saldo" width="260" height="34"></svg>
     </div>
     <div>
-      <div>Personas que se mudan</div>
+      <div>Movimientos</div>
       <svg id="leyenda-grosor" width="260" height="34"></svg>
     </div>
   </div>
@@ -152,7 +152,7 @@ Promise.all([
     .on("mousemove", (evento, n) => {
       const signo = n.saldo > 0 ? "+" : "";
       mostrar(evento, `<strong>${n.provincia}</strong> · ${n.ccaa}<br>
-        Llegan: ${num(n.llegadas)}<br>Se van: ${num(n.salidas)}<br>
+        Llegadas: ${num(n.llegadas)}<br>Salidas: ${num(n.salidas)}<br>
         Saldo: <b>${signo}${num(n.saldo)}</b>`);
       const vecinos = new Set([n.provincia]);
       capaEnlaces.classed("activo", e => e.o === n || e.d === n)
@@ -172,7 +172,7 @@ Promise.all([
     });
 
   capaEnlaces
-    .on("mousemove", (evento, e) => mostrar(evento, `<strong>${e.origen} → ${e.destino}</strong><br>${num(e.personas)} personas`))
+    .on("mousemove", (evento, e) => mostrar(evento, `<strong>${e.origen} → ${e.destino}</strong><br>${num(e.personas)} movimientos`))
     .on("mouseleave", ocultar);
 
   // Leyenda del saldo
